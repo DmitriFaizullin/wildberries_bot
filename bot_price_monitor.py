@@ -10,9 +10,16 @@ from database_handlers import create_db, get_user_products, delete_product
 # Загрузка переменных окружения из файла .env
 load_dotenv()
 token = os.getenv('TOKEN', 'your bot token')
+allowed_users_str = os.getenv('ALLOWED_USERS')
+ALLOWED_USERS = {int(user_id) for user_id in allowed_users_str.split(',')}
 
 # Инициализация бота с токеном
 bot = TeleBot(token=token)
+
+
+# Функция для проверки разрешенных пользователей
+def is_user_allowed(user_id):
+    return user_id in ALLOWED_USERS
 
 
 # Функция для мониторинга цен
@@ -25,11 +32,15 @@ def price_monitoring():
 # Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def wake_up(message):
-    chat = message.chat
+    chat_id = message.chat.id
+    if not is_user_allowed(chat_id):
+        bot.send_message(chat_id, 'У вас нет доступа к этому боту.')
+        return
+
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button_myproducts = types.KeyboardButton('/myproducts')
     keyboard.add(button_myproducts)
-    bot.send_message(chat_id=chat.id, text='Привет!', reply_markup=keyboard)
+    bot.send_message(chat_id=chat_id, text='Привет!', reply_markup=keyboard)
 
 
 # Функция для создания кнопки удаления товара
@@ -47,6 +58,9 @@ def create_delete_button(product_id):
 @bot.message_handler(commands=['myproducts'])
 def my_products(message):
     chat_id = message.chat.id
+    if not is_user_allowed(chat_id):
+        bot.send_message(chat_id, 'У вас нет доступа к этому боту.')
+        return
     products = get_user_products(chat_id)
     if products:
         for product in products:
@@ -122,6 +136,10 @@ def handle_cancel_delete(call):
 # Обработчик для получения текстовых сообщений
 @bot.message_handler(content_types=['text'])
 def receive_message(message):
+    chat_id = message.chat.id
+    if not is_user_allowed(chat_id):
+        bot.send_message(chat_id, 'У вас нет доступа к этому боту.')
+        return
     handle_product_id(message, bot)
 
 
