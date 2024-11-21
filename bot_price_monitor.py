@@ -1,20 +1,23 @@
-import os
 import json
 import threading
 import time
-from dotenv import load_dotenv
+from decouple import config, Csv
 from telebot import TeleBot, types
 from product_management import check_prices, handle_product_id
 from database_handlers import create_db, get_user_products, delete_product
 
-# Загрузка переменных окружения из файла .env
-load_dotenv()
-token = os.getenv('TOKEN', 'your bot token')
-allowed_users_str = os.getenv('ALLOWED_USERS')
-ALLOWED_USERS = {int(user_id) for user_id in allowed_users_str.split(',')}
+FREQUENCY_OF_PRICE_CHECKING = 600  # Частота проверки цен
+
+# Добавте токет вашего Telegram-бота
+YOUR_BOT_TOKEN = ''
+TOKEN = config('TOKEN', default=YOUR_BOT_TOKEN)
+# Добавте id пользователей Telegram для которых будет доступен бот
+YOUR_ALLOWED_USERS = ''
+ALLOWED_USERS = config(
+    'ALLOWED_USERS', default=YOUR_ALLOWED_USERS, cast=Csv(int, delimiter=','))
 
 # Инициализация бота с токеном
-bot = TeleBot(token=token)
+bot = TeleBot(token=TOKEN)
 
 
 # Функция для проверки разрешенных пользователей
@@ -26,7 +29,7 @@ def is_user_allowed(user_id):
 def price_monitoring():
     while True:
         check_prices(bot)
-        time.sleep(600)
+        time.sleep(FREQUENCY_OF_PRICE_CHECKING)
 
 
 # Обработчик команды /start
@@ -40,7 +43,15 @@ def wake_up(message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     button_myproducts = types.KeyboardButton('/myproducts')
     keyboard.add(button_myproducts)
-    bot.send_message(chat_id=chat_id, text='Привет!', reply_markup=keyboard)
+    bot.send_message(
+        chat_id=chat_id,
+        text=(
+            f'Привет, {message.chat.first_name}!\n'
+            'Для добавления товара введите его id с сайта Wildberries\n'
+            'Чтобы посмотреть ваши товары нажмите кнопку /myproducts'
+        ),
+        reply_markup=keyboard
+    )
 
 
 # Функция для создания кнопки удаления товара
@@ -65,9 +76,9 @@ def my_products(message):
     if products:
         for product in products:
             keyboard = create_delete_button(product['id'])
-            bot.send_photo(
+            bot.send_message(
                 chat_id=chat_id,
-                photo=product['product_url'],
+                text=product['product_url'],
                 reply_markup=keyboard
             )
     else:
