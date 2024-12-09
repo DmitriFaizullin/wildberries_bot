@@ -20,8 +20,12 @@ def get_catalog_wb(ids):
 
 # Создание карточки товара с необходимыми данными
 def create_product_cart(product):
-    sizes = product.get('sizes', [])[0]
-    price = sizes.get('price', {}).get('product', None)
+    sizes = product.get('sizes', [])
+    for size in sizes:
+        prices = size.get('price', None)
+        if prices:
+            price = prices.get('product', None)
+            break
     return {
         'price': price,
         'brand': product.get('brand', None),
