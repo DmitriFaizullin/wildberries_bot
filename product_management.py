@@ -1,7 +1,7 @@
-import sqlite3
 import requests
+import sqlite3
 from database_handlers import (
-    add_product_to_db, update_min_price, get_ids_products_db)
+    add_product_to_db, update_min_price, update_max_price, get_ids_products_db)
 
 
 # Получение каталога товаров с сайта Wildberries
@@ -54,17 +54,28 @@ def check_prices(bot):
     for product_db in products_db:
         product_wb = products_wb.get(product_db['id'])
         price_wb = product_wb.get('price')
-        price_db = product_db.get('min_price')
-        if price_wb < price_db:
-            chat_id = product_db['user_id']
+        min_price_db = product_db.get('min_price')
+        max_price_db = product_db.get('max_price')
+        if price_wb < min_price_db:
             message = (
-                f'Снизилась цена на товар!\n'
-                f"Была: {price_db // 100} руб.\n"
+                f'Минимальная цена товара!\n'
+                f"Была: {min_price_db // 100} руб.\n"
                 f"Стала: {price_wb // 100} руб.\n"
+                f"Максимальная: {max_price_db // 100} руб.\n"
                 f"{product_wb['product_url']}\n"
             )
-            bot.send_message(chat_id, message)
+            bot.send_message(product_db['user_id'], message)
             update_min_price(product_db['id'], price_wb)
+        elif price_wb > max_price_db:
+            message = (
+                f'Максимальная цена товара!\n'
+                f"Была: {max_price_db // 100} руб.\n"
+                f"Стала: {price_wb // 100} руб.\n"
+                f"Минимальная: {min_price_db // 100} руб.\n"
+                f"{product_wb['product_url']}\n"
+            )
+            bot.send_message(product_db['user_id'], message)
+            update_max_price(product_db['id'], price_wb)
 
 
 # Получение данных о товаре с сервера Wildberries по ID

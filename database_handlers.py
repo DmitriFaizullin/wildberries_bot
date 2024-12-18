@@ -34,7 +34,8 @@ def create_db():
     query = '''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER,
-            min_price REAL,
+            min_price INTEGER,
+            max_price INTEGER,
             user_id INTEGER,
             product_url TEXT,
             PRIMARY KEY (id, user_id)
@@ -46,10 +47,12 @@ def create_db():
 # Функция для добавления товара в базу данных
 def add_product_to_db(product_id, product_price, product_url, chat_id):
     query = '''
-        INSERT INTO products (id, min_price, product_url, user_id)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO products (id, min_price, max_price, product_url, user_id)
+        VALUES (?, ?, ?, ?, ?)
     '''
-    execute_commit(query, (product_id, product_price, product_url, chat_id))
+    execute_commit(
+        query,
+        (product_id, product_price, product_price, product_url, chat_id))
 
 
 # Функция для обновления минимальной цены товара в базе данных
@@ -60,14 +63,27 @@ def update_min_price(product_id, new_price):
     execute_commit(query, (new_price, product_id))
 
 
+# Функция для обновления минимальной цены товара в базе данных
+def update_max_price(product_id, new_price):
+    query = '''
+        UPDATE products SET max_price = ? WHERE id = ?
+    '''
+    execute_commit(query, (new_price, product_id))
+
+
 # Функция для получения списка всех товаров из базы данных
 def get_ids_products_db():
     query = '''
-        SELECT id, user_id, min_price FROM products
+        SELECT id, user_id, min_price, max_price FROM products
     '''
     rows = execute_query(query)
     return [
-        {'id': row[0], 'user_id': row[1], 'min_price': row[2]} for row in rows]
+        {
+            'id': row[0],
+            'user_id': row[1],
+            'min_price': row[2],
+            'max_price': row[3]
+        } for row in rows]
 
 
 # Функция для получения списка товаров пользователя из базы данных
